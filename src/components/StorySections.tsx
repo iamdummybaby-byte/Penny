@@ -506,7 +506,7 @@ export const FaqSection: React.FC = () => {
                         heatmapZone: 'faq-section',
                       });
                     }
-                    setOpenIndex(isOpen ? null : idx);
+                    setOpenIdx(isOpen ? null : idx);
                   }}
                   aria-expanded={isOpen}
                   className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 hover:bg-[#EFECE2] cursor-pointer transition-colors"
