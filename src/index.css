@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-cream: #F6F3EB;
+    --bg-card: #EFECE2;
+    --bg-dark: #181715;
+    --ink: #1C1917;
+    --ink-muted: #57534E;
+    --accent-orange: #D95D39;
+    --accent-green: #4A6B53;
+    --accent-yellow: #E6B84D;
+    --accent-brown: #43342B;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Pixelify Sans', monospace;
+    background-color: #F6F3EB;
+    color: #1C1917;
+  }
+
+  body {
+    font-family: 'Pixelify Sans', monospace;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-pixel-display {
+    font-family: 'Silkscreen', monospace;
+    letter-spacing: -0.02em;
+  }
+
+  .font-pixel-arcade {
+    font-family: 'Press Start 2P', monospace;
+  }
+
+  .font-pixel-mono {
+    font-family: 'VT323', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .font-pixel-body {
+    font-family: 'Pixelify Sans', monospace;
+  }
+}
+
+/* Subtle Pixel Grid Background */
+.bg-pixel-grid {
+  background-color: #F6F3EB;
+  background-image: 
+    radial-gradient(#1C1917 1px, transparent 1px),
+    radial-gradient(#D6D1C4 1px, #F6F3EB 1px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+.bg-pixel-dark-grid {
+  background-color: #181715;
+  background-image: 
+    linear-gradient(to right, rgba(246, 243, 235, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(246, 243, 235, 0.04) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Subtle CRT scanlines for dark retro sections */
+.crt-scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.18) 50%
+  );
+  background-size: 100% 4px;
+}
+
+/* Hard-edged Pixel Borders & Shadows */
+.pixel-box {
+  border: 3px solid #1C1917;
+  box-shadow: 4px 4px 0px #1C1917;
+  background-color: #F6F3EB;
+}
+
+.pixel-box-sm {
+  border: 2px solid #1C1917;
+  box-shadow: 3px 3px 0px #1C1917;
+}
+
+.pixel-box-lg {
+  border: 3px solid #1C1917;
+  box-shadow: 6px 6px 0px #1C1917;
+}
+
+.pixel-box-dark {
+  border: 3px solid #F6F3EB;
+  box-shadow: 4px 4px 0px #D95D39;
+  background-color: #23211E;
+}
+
+/* Interactive Game-like Pixel Buttons */
+.pixel-btn {
+  border: 3px solid #1C1917;
+  box-shadow: 4px 4px 0px #1C1917;
+  transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease;
+  user-select: none;
+  cursor: pointer;
+}
+
+.pixel-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #1C1917;
+}
+
+.pixel-btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0px #1C1917;
+}
+
+.pixel-btn:focus-visible {
+  outline: 3px dashed #D95D39;
+  outline-offset: 3px;
+}
+
+.pixel-btn-sm {
+  border: 2px solid #1C1917;
+  box-shadow: 3px 3px 0px #1C1917;
+  transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease;
+  cursor: pointer;
+}
+
+.pixel-btn-sm:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #1C1917;
+}
+
+.pixel-btn-sm:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #1C1917;
+}
+
+/* Product Card Hover Lift */
+.pixel-card {
+  border: 3px solid #1C1917;
+  box-shadow: 4px 4px 0px #1C1917;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 160ms ease;
+}
+
+.pixel-card:hover {
+  transform: translate(-3px, -4px);
+  box-shadow: 7px 8px 0px #1C1917;
+}
+
+/* Pixel Input Fields */
+.pixel-input {
+  border: 3px solid #1C1917;
+  background-color: #FFFFFF;
+  box-shadow: inset 3px 3px 0px rgba(28, 25, 23, 0.08);
+  font-family: 'Pixelify Sans', monospace;
+}
+
+.pixel-input:focus {
+  outline: none;
+  border-color: #D95D39;
+  box-shadow: inset 3px 3px 0px rgba(217, 93, 57, 0.12), 3px 3px 0px #1C1917;
+}
+
+/* Animations */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes pixelBounce {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes blinkCursor {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes marchHorizontal {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100vw);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 3.4s ease-in-out infinite;
+}
+
+.animate-pixel-bounce {
+  animation: pixelBounce 1.2s steps(2, end) infinite;
+}
+
+.animate-blink {
+  animation: blinkCursor 1s steps(1, end) infinite;
+}
+
+/* Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-pixel-bounce,
+  .animate-blink {
+    animation: none !important;
+  }
+  .pixel-btn,
+  .pixel-card {
+    transition: none !important;
+  }
+}
+
+/* Crisp Pixel Rendering for SVGs */
+.crisp-edges {
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}

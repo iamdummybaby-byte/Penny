@@ -1,0 +1,6 @@
+{
+  "name": "PENNY — Collectible Creature Pen Holders",
+  "description": "Tiny creatures. Big desk energy. Quirky, collectible creature-shaped pen holders designed inside a pixel-art universe.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
