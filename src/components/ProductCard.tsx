@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Product } from '../data/products';
 import { PixelHeart, PixelImage, PixelStar } from './PixelSprites';
 import { sound } from '../utils/sound';
-import { trackEvent, trackCtaClick } from '../utils/analytics';
 
 interface ProductCardProps {
   product: Product;
@@ -44,16 +43,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <article
       onClick={() => {
         sound.playBlip(640, 0.04);
-        trackEvent({
-          type: 'product_click',
-          page: 'shop',
-          section: 'shop-section',
-          elementName: 'CREATURE PRODUCT CARDS',
-          productId: product.id,
-          productName: product.name,
-          productSlug: product.slug,
-          heatmapZone: 'CREATURE PRODUCT CARDS',
-        });
         onSelectProduct(product);
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -113,7 +102,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             sound.playBlip(600, 0.04);
-            trackCtaClick('VIEW DETAILS', 'shop-section', 'shop', 'VIEW DETAILS');
             onQuickView(product);
           }}
           className={`absolute bottom-3 left-3 z-20 pixel-btn-sm bg-[#1C1917] text-[#F6F3EB] hover:bg-[#D95D39] px-2.5 py-1 font-pixel-mono text-xs tracking-wider uppercase transition-opacity duration-150 whitespace-nowrap ${

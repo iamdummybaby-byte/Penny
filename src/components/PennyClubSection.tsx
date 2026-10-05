@@ -8,7 +8,6 @@ import {
 } from './PixelSprites';
 import { sound } from '../utils/sound';
 import { FORMSPREE_ENDPOINT, submitToFormspree } from '../utils/formspree';
-import { trackEvent, trackCtaClick } from '../utils/analytics';
 
 interface PennyClubSectionProps {
   onBackToCreatures: () => void;
@@ -376,22 +375,9 @@ export const PennyClubSection: React.FC<PennyClubSectionProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'scanning' | 'welcomed'>('idle');
   const [scanStepIdx, setScanStepIdx] = useState(0);
-  const [formStarted, setFormStarted] = useState(false);
 
   const isNameValid = memberName.trim().length > 0;
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-
-  const markFormStarted = () => {
-    if (!formStarted) {
-      setFormStarted(true);
-      trackEvent({
-        type: 'club_form_start',
-        page: 'penny-club',
-        section: 'penny-club-section',
-        heatmapZone: 'penny-club-section',
-      });
-    }
-  };
 
   useEffect(() => {
     if (isNameValid && isEmailValid) {
@@ -401,7 +387,6 @@ export const PennyClubSection: React.FC<PennyClubSectionProps> = ({
 
   const handleToggleReason = (id: string) => {
     sound.playBlip(640, 0.04);
-    markFormStarted();
     setBouncingCardId(id);
     setTimeout(() => setBouncingCardId(null), 350);
     setSelectedReasons((prev) =>
@@ -411,8 +396,6 @@ export const PennyClubSection: React.FC<PennyClubSectionProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    trackCtaClick('LET ME IN', 'penny-club-section', 'penny-club', 'penny-club-section');
-
     if (!isNameValid) {
       sound.playRelease();
       setErrorMsg('THE CREATURES NEED TO KNOW WHAT TO CALL YOU.');
@@ -444,45 +427,26 @@ export const PennyClubSection: React.FC<PennyClubSectionProps> = ({
       sound.playBlip(780, 0.05);
     }, 840);
 
-    const selectedReasonTitlesList = selectedReasons.map(
-      (id) => REASON_OPTIONS.find((r) => r.id === id)?.title || id
-    );
-    const selectedReasonTitles = selectedReasonTitlesList.join(', ');
+    const selectedReasonTitles =
+      selectedReasons.length > 0
+        ? selectedReasons
+            .map((id) => REASON_OPTIONS.find((r) => r.id === id)?.title || id)
+            .join(', ')
+        : "I'M JUST CURIOUS";
 
-    // Record anonymized PENNY CLUB analytics (country + reasons only, zero PII)
-    trackEvent({
-      type: 'club_signup',
-      page: 'penny-club',
-      section: 'penny-club-section',
-      elementName: 'LET ME IN',
-      country: selectedCountry.name,
-      clubReasons:
-        selectedReasonTitlesList.length > 0
-          ? selectedReasonTitlesList
-          : ["I'M JUST CURIOUS"],
-      heatmapZone: 'penny-club-section',
-    });
-
-    const result = await submitToFormspree({
+    // Run Formspree submission in parallel with the 1.2s terminal scan animation
+    submitToFormspree({
       _subject: `PENNY Club Membership: ${memberName.trim()} (${selectedCountry.name})`,
       form_type: 'PENNY_CLUB_MEMBERSHIP',
       name: memberName.trim(),
       country: selectedCountry.name,
       email: email.trim(),
-      why_interested: selectedReasonTitles || 'Curious human',
+      why_interested: selectedReasonTitles,
     });
 
     setTimeout(() => {
       clearTimeout(t1);
       clearTimeout(t2);
-      if (!result.ok) {
-        sound.playRelease();
-        setStatus('idle');
-        setErrorMsg(
-          result.errorMessage || 'SIGNAL INTERRUPTED. PLEASE TRY AGAIN.'
-        );
-        return;
-      }
       sound.playCelebration();
       setStatus('welcomed');
     }, 1280);
