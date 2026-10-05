@@ -8,6 +8,7 @@ import {
   PixelImage,
 } from './PixelSprites';
 import { sound } from '../utils/sound';
+import { trackCtaClick } from '../utils/analytics';
 
 interface HeroProps {
   featuredCreatures: Product[];
@@ -122,6 +123,7 @@ export const Hero: React.FC<HeroProps> = ({
                 type="button"
                 onClick={() => {
                   sound.playBlip(680, 0.05);
+                  trackCtaClick('SHOP THE CREATURES', 'hero', 'home', 'hero');
                   onShopClick();
                 }}
                 className="pixel-btn bg-[#D95D39] hover:bg-[#c04c2b] text-[#F6F3EB] font-pixel-display text-sm sm:text-base px-6 py-4 flex items-center gap-3 whitespace-nowrap"
@@ -134,6 +136,7 @@ export const Hero: React.FC<HeroProps> = ({
                 type="button"
                 onClick={() => {
                   sound.playBlip(520, 0.05);
+                  trackCtaClick('MEET THE WEIRDOS', 'hero', 'home', 'hero');
                   onMeetWeirdosClick();
                 }}
                 className="pixel-btn bg-[#EFECE2] hover:bg-[#E6B84D] text-[#1C1917] font-pixel-display text-sm sm:text-base px-6 py-4 whitespace-nowrap"

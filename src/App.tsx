@@ -36,6 +36,13 @@ import {
   OrderRecord,
 } from './components/CartAndCheckout';
 import { PixelCreatureSprite } from './components/PixelSprites';
+import { AdminAnalyticsPanel } from './components/AdminAnalyticsPanel';
+import {
+  trackEvent,
+  trackCtaClick,
+  getAnonymousSessionId,
+  setAnalyticsCurrentPage,
+} from './utils/analytics';
 
 interface PixelToast {
   id: number;
@@ -76,7 +83,7 @@ export default function App() {
   });
 
   const [currentView, setCurrentView] = useState<
-    'home' | 'product' | 'checkout' | 'confirmation'
+    'home' | 'product' | 'checkout' | 'confirmation' | 'admin'
   >('home');
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -87,6 +94,23 @@ export default function App() {
   >(null);
   const [completedOrder, setCompletedOrder] = useState<OrderRecord | null>(null);
   const [toast, setToast] = useState<PixelToast | null>(null);
+  const [productViewEnteredAt, setProductViewEnteredAt] = useState<number>(0);
+
+  // Initial session_start & page_view + 20s live visitor heartbeat
+  useEffect(() => {
+    const { isNewSession } = getAnonymousSessionId();
+    if (isNewSession) {
+      trackEvent({ type: 'session_start', page: 'home' });
+    }
+    trackEvent({ type: 'page_view', page: 'home', heatmapZone: 'hero' });
+
+    const hb = setInterval(() => {
+      if (window.location.pathname !== '/admin') {
+        trackEvent({ type: 'heartbeat' });
+      }
+    }, 20000);
+    return () => clearInterval(hb);
+  }, []);
 
   useEffect(() => {
     try {
@@ -125,23 +149,30 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Sync URL path `/shop/product-name` with state
+  // Sync URL path `/shop/product-name` or `/admin` with state
   useEffect(() => {
     const syncFromPath = () => {
       const path = window.location.pathname;
+      if (path === '/admin') {
+        setCurrentView('admin');
+        return;
+      }
       if (path.startsWith('/shop/')) {
         const slug = path.replace('/shop/', '').trim();
         const found = products.find((p) => p.slug === slug);
         if (found) {
           setSelectedSlug(found.slug);
           setCurrentView('product');
+          setAnalyticsCurrentPage('product');
           return;
         }
       } else if (path === '/checkout') {
         setCurrentView('checkout');
+        setAnalyticsCurrentPage('checkout');
         return;
       }
       setCurrentView('home');
+      setAnalyticsCurrentPage('home');
     };
 
     syncFromPath();
@@ -163,9 +194,48 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const flushProductDwell = () => {
+    if (currentView === 'product' && productViewEnteredAt > 0 && selectedSlug) {
+      const targetProd = products.find((p) => p.slug === selectedSlug);
+      const sec = Math.round((Date.now() - productViewEnteredAt) / 1000);
+      if (targetProd && sec >= 1) {
+        trackEvent({
+          type: 'product_dwell',
+          page: 'product',
+          productId: targetProd.id,
+          productName: targetProd.name,
+          productSlug: targetProd.slug,
+          durationSec: sec,
+        });
+      }
+      setProductViewEnteredAt(0);
+    }
+  };
+
   const navigateToProduct = (product: Product) => {
+    flushProductDwell();
     setSelectedSlug(product.slug);
     setCurrentView('product');
+    setProductViewEnteredAt(Date.now());
+    setAnalyticsCurrentPage('product');
+    trackEvent({
+      type: 'page_view',
+      page: 'product',
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+      heatmapZone: 'product-gallery',
+    });
+    trackEvent({
+      type: 'product_view',
+      page: 'product',
+      section: 'product-detail',
+      elementName: 'VIEW DETAILS',
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+      heatmapZone: 'product-gallery',
+    });
     try {
       window.history.pushState({}, '', `/shop/${product.slug}`);
     } catch {
@@ -175,7 +245,25 @@ export default function App() {
   };
 
   const navigateHome = (sectionId?: string) => {
+    flushProductDwell();
     setCurrentView('home');
+    const virtualPage =
+      sectionId === 'shop-section'
+        ? 'shop'
+        : sectionId === 'about-section'
+        ? 'about'
+        : sectionId === 'faq-section'
+        ? 'faq'
+        : sectionId === 'penny-club-section'
+        ? 'penny-club'
+        : 'home';
+    setAnalyticsCurrentPage(virtualPage);
+    trackEvent({
+      type: 'page_view',
+      page: virtualPage,
+      section: sectionId || 'top',
+      heatmapZone: sectionId || 'hero',
+    });
     try {
       window.history.pushState({}, '', '/');
     } catch {
@@ -193,7 +281,28 @@ export default function App() {
     }
   };
 
+  const navigateToAdmin = () => {
+    flushProductDwell();
+    setCurrentView('admin');
+    try {
+      window.history.pushState({}, '', '/admin');
+    } catch {
+      // ignore
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleAddToCart = (product: Product, quantity = 1) => {
+    trackEvent({
+      type: 'add_to_cart',
+      section: currentView === 'product' ? 'purchase-module' : 'shop-section',
+      elementName: 'ADD TO CART',
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+      quantity,
+      heatmapZone: 'ADD TO CART',
+    });
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -213,9 +322,20 @@ export default function App() {
   };
 
   const handleBuyNow = (product: Product, quantity = 1) => {
+    trackCtaClick('BUY NOW', 'purchase-module', 'product', 'BUY NOW');
     handleAddToCart(product, quantity);
     setCartOpen(false);
     setCurrentView('checkout');
+    setAnalyticsCurrentPage('checkout');
+    trackEvent({
+      type: 'checkout_start',
+      page: 'checkout',
+      section: 'checkout-shipping',
+      elementName: 'CHECKOUT',
+      productId: product.id,
+      productName: product.name,
+      heatmapZone: 'checkout-shipping',
+    });
     try {
       window.history.pushState({}, '', '/checkout');
     } catch {
@@ -237,6 +357,11 @@ export default function App() {
     if (delta < 0) {
       const target = cart.find((c) => c.product.id === productId);
       if (target && target.quantity === 1) {
+        trackEvent({
+          type: 'remove_from_cart',
+          productId: target.product.id,
+          productName: target.product.name,
+        });
         showToast('CREATURE RELEASED', `${target.product.name} left your bag.`, 'release');
       }
     }
@@ -246,6 +371,11 @@ export default function App() {
     const target = cart.find((c) => c.product.id === productId);
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
     if (target) {
+      trackEvent({
+        type: 'remove_from_cart',
+        productId: target.product.id,
+        productName: target.product.name,
+      });
       showToast('CREATURE RELEASED', `${target.product.name} was released back to the wild.`, 'release');
     }
   };
@@ -257,6 +387,16 @@ export default function App() {
       exists ? prev.filter((id) => id !== productId) : [...prev, productId]
     );
     if (target) {
+      if (!exists) {
+        trackEvent({
+          type: 'wishlist_add',
+          productId: target.id,
+          productName: target.name,
+          productSlug: target.slug,
+          elementName: 'WISHLIST HEART',
+          heatmapZone: 'CREATURE PRODUCT CARDS',
+        });
+      }
       showToast(
         exists ? 'REMOVED FROM SAVED' : 'CREATURE FAVORITED ♥',
         target.name,
@@ -297,14 +437,40 @@ export default function App() {
   const activeProduct =
     products.find((p) => p.slug === selectedSlug) || products[0];
 
+  // Separate Private Admin Analytics Control Room
+  if (currentView === 'admin') {
+    return (
+      <AdminAnalyticsPanel
+        products={products}
+        onExitAdmin={() => navigateHome('top')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F6F3EB] text-[#1C1917] selection:bg-[#D95D39] selection:text-[#F6F3EB]">
       {/* Sticky Pixel Navigation Header */}
       <Header
         cartCount={totalCartCount}
         wishlistCount={wishlist.length}
-        onOpenCart={() => setCartOpen(true)}
-        onOpenSearch={() => setSearchOpen(true)}
+        onOpenCart={() => {
+          trackEvent({
+            type: 'cart_view',
+            section: 'header',
+            elementName: 'CART',
+            heatmapZone: 'CART',
+          });
+          setCartOpen(true);
+        }}
+        onOpenSearch={() => {
+          trackEvent({
+            type: 'search',
+            section: 'header',
+            elementName: 'SEARCH',
+            heatmapZone: 'SEARCH',
+          });
+          setSearchOpen(true);
+        }}
         onNavigateHome={navigateHome}
         currentView={currentView}
       />
@@ -358,7 +524,14 @@ export default function App() {
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
-            onOpenCart={() => setCartOpen(true)}
+            onOpenCart={() => {
+              trackEvent({
+                type: 'cart_view',
+                section: 'product-detail',
+                elementName: 'CART',
+              });
+              setCartOpen(true);
+            }}
             onBackToShop={() => navigateHome('shop-section')}
             onSelectProduct={navigateToProduct}
             onUpdateDimensions={handleUpdateDimensions}
@@ -371,6 +544,22 @@ export default function App() {
             items={cart}
             onBackToShop={() => navigateHome('shop-section')}
             onCompleteOrder={(orderRecord) => {
+              // Record anonymized purchase event for each ordered creature + overall order
+              for (const item of orderRecord.items) {
+                trackEvent({
+                  type: 'purchase',
+                  page: 'checkout',
+                  section: 'checkout-complete',
+                  elementName: 'CHECKOUT',
+                  productId: item.product.id,
+                  productName: item.product.name,
+                  productSlug: item.product.slug,
+                  quantity: item.quantity,
+                  orderValue: orderRecord.total,
+                  country: 'INDIA',
+                  heatmapZone: 'checkout_complete',
+                });
+              }
               setCompletedOrder(orderRecord);
               setCart([]);
               setCurrentView('confirmation');
@@ -398,6 +587,7 @@ export default function App() {
       <Footer
         onNavigateHome={navigateHome}
         onShowPolicyModal={(type) => setPolicyModal(type)}
+        onOpenAdmin={navigateToAdmin}
       />
 
       {/* Slide-in Pixel Cart Drawer */}
@@ -410,6 +600,14 @@ export default function App() {
         onProceedToCheckout={() => {
           setCartOpen(false);
           setCurrentView('checkout');
+          setAnalyticsCurrentPage('checkout');
+          trackEvent({
+            type: 'checkout_start',
+            page: 'checkout',
+            section: 'cart-drawer',
+            elementName: 'CHECKOUT',
+            heatmapZone: 'checkout-shipping',
+          });
           try {
             window.history.pushState({}, '', '/checkout');
           } catch {
@@ -425,7 +623,18 @@ export default function App() {
         isOpen={searchOpen}
         products={products}
         onClose={() => setSearchOpen(false)}
-        onSelectProduct={navigateToProduct}
+        onSelectProduct={(prod) => {
+          trackEvent({
+            type: 'search_result_click',
+            page: 'home',
+            section: 'search-modal',
+            elementName: 'SEARCH',
+            productId: prod.id,
+            productName: prod.name,
+            productSlug: prod.slug,
+          });
+          navigateToProduct(prod);
+        }}
         onQuickAdd={(prod) => handleAddToCart(prod, 1)}
       />
 

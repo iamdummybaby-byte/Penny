@@ -9,6 +9,7 @@ import {
   PixelHeart,
 } from './PixelSprites';
 import { sound } from '../utils/sound';
+import { trackEvent, trackCtaClick } from '../utils/analytics';
 
 /* ============================================================================
    SECTION: WHY PENNY (3 Pixel Cards)
@@ -495,8 +496,17 @@ export const FaqSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    sound.playBlip(isOpen ? 460 : 620, 0.04);
-                    setOpenIdx(isOpen ? null : idx);
+                    sound.playBlip(isOpen ? 440 : 620, 0.04);
+                    if (!isOpen) {
+                      trackEvent({
+                        type: 'faq_open',
+                        page: 'faq',
+                        section: 'faq-section',
+                        elementName: item.q,
+                        heatmapZone: 'faq-section',
+                      });
+                    }
+                    setOpenIndex(isOpen ? null : idx);
                   }}
                   aria-expanded={isOpen}
                   className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 hover:bg-[#EFECE2] cursor-pointer transition-colors"
@@ -532,11 +542,13 @@ export const FaqSection: React.FC = () => {
 interface FooterProps {
   onNavigateHome: (sectionId?: string) => void;
   onShowPolicyModal: (policyType: 'shipping' | 'returns' | 'contact' | 'privacy') => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onNavigateHome,
   onShowPolicyModal,
+  onOpenAdmin,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(sound.enabled);
 
@@ -678,6 +690,12 @@ export const Footer: React.FC<FooterProps> = ({
               type="button"
               onClick={() => {
                 sound.playBlip(640, 0.04);
+                trackCtaClick(
+                  'JOIN THE PENNY CLUB',
+                  'footer',
+                  'home',
+                  'penny-club-section'
+                );
                 onNavigateHome('penny-club-section');
               }}
               className="bg-[#D95D39] hover:bg-[#E6B84D] hover:text-[#1C1917] text-[#F6F3EB] border-2 border-[#F6F3EB] px-5 py-3 font-pixel-display text-xs uppercase cursor-pointer transition-colors whitespace-nowrap"
@@ -687,14 +705,29 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
 
-        {/* Tiny Pixel Creatures Parading Along the Bottom Border */}
+        {/* Tiny Pixel Creatures Parading Along the Bottom Border + Subtle Admin Entry */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-pixel-mono text-[#F6F3EB]/60">
           <div>© 2026 PENNY. All rights reserved.</div>
-          <div className="flex items-center gap-4" aria-hidden="true">
-            <PixelCreatureSprite className="w-6 h-6 animate-pixel-bounce" color="#4A6B53" />
-            <PixelChompSprite className="w-6 h-6 animate-float-slow" />
-            <PixelBlobSprite className="w-6 h-6 animate-pixel-bounce" />
-            <PixelCreatureSprite className="w-6 h-6 animate-float-slow" color="#D95D39" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <PixelCreatureSprite className="w-6 h-6 animate-pixel-bounce" color="#4A6B53" />
+              <PixelChompSprite className="w-6 h-6 animate-float-slow" />
+              <PixelBlobSprite className="w-6 h-6 animate-pixel-bounce" />
+              <PixelCreatureSprite className="w-6 h-6 animate-float-slow" color="#D95D39" />
+            </div>
+            {onOpenAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playBlip(520, 0.03);
+                  onOpenAdmin();
+                }}
+                title="PENNY Admin Telemetry"
+                className="font-pixel-mono text-[11px] text-[#F6F3EB]/30 hover:text-[#E6B84D] transition-colors cursor-pointer ml-2 select-none"
+              >
+                ⚙ ADMIN
+              </button>
+            )}
           </div>
         </div>
       </div>
